@@ -1,0 +1,5 @@
+export const ADD_NEW_TODO = "ADD_NEW_TODO"
+export const REMOVE_A_TODO = "REMOVE_A_TODO"
+export const EDIT_A_TODO = "EDIT_A_TODO"
+export const CLEAR_TODO_LIST = "CLEAR_TODO_LIST"
+export const TOGGLE_TODO_STATE = "TOGGLE_TODO_STATE"
