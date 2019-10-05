@@ -11,7 +11,7 @@ export default function(state = initialState, action) {
         case ACTION_TYPE.ADD_NEW_TODO:
             return {
                 ...state,
-                todos: [...state.todos, ...action.payload],
+                todos: [...action.payload,...state.todos],
                 todoToBeEdited: {}
             }
         case ACTION_TYPE.REMOVE_A_TODO:

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import { connect } from 'react-redux'
 import { getAllTodos, getInCompleteTodos, getCompletedTodos } from './store/selectors'
@@ -12,9 +11,12 @@ function ListAllTodos(props){
   return (
     <ol>
       {
-        todos.map(todo=>(
-          <li key={todo.createdAt}>
-            <span onClick={e=>toggle(todo)} className={todo.isPending ? `pending` : `completed` }>{todo.value}</span>
+        todos.map((todo,i)=>(
+          <li key={i}>
+            <span onClick={e=>toggle(todo)} className={todo.isPending ? `pending` : `completed` }>{todo.value}<br />
+              <small>{new Date(todo.createdAt).toString().split("GMT")[0]}</small>
+              {todo.modifiedAt ? <small> > {new Date(todo.modifiedAt).toString().split("GMT")[0]}</small> : ""}
+            </span>
             <button onClick={e=>edit(todos,todo)}>Edit</button>
             <button onClick={e=>remove(todos,todo)}>Remove</button>
           </li>
@@ -26,38 +28,42 @@ function ListAllTodos(props){
 
 
 function App(props) {
-  const [state,setState] = useState(null)
-  let showingTodos = []
+  const [state,setState] = useState({
+    todoToBeEdited:{},
+    showingTodos:'all',
+    isEditing:false,
+    value:""
+  })
+  const [showingTodos,setShowTodos] = useState(null)
 
+  const { dispatch, todoToBeEdited } = props
   useEffect(()=>{
-    const { dispatch, ...restProps } = props
     const value = props.todoToBeEdited.value ? props.todoToBeEdited.value : "" 
     setState(previousState=>({
       ...previousState,
-      ...restProps,
-      isEditing:false,
-      value,
-      showingTodos: previousState && previousState.showingTodos ? previousState.showingTodos : "all" 
+      todoToBeEdited,
+      value
     }))
-    if(state && state.showingTodos === "all"){
-      showingTodos = state.allTodos
-    } else if(state && state.showingTodos === "completed"){
-      showingTodos = state.completedTodos
+    if(state.showingTodos === "completed"){
+      setShowTodos([...props.completedTodos])
     }
-    else if(state && state.showingTodos === "pending"){
-      showingTodos = state.inCompleteTodos
+    else if(state.showingTodos === "pending"){
+      setShowTodos([...props.inCompleteTodos])
+    } else {
+      setShowTodos([...props.allTodos])
     }
-    console.log(showingTodos)
-  },[props.todos,props.todoToBeEdited])
+    window.addEventListener('scroll',e=>{
+      // if(document.documentElement.scrollTop > 50 && )
+    })
+  },[props,state.showingTodos,todoToBeEdited])
 
   const removeTodo = (allTodos,todoToBeRemoved) => {
-    console.log(allTodos,todoToBeRemoved)
-    props.dispatch(removeATodo(allTodos,todoToBeRemoved))
+    dispatch(removeATodo(allTodos,todoToBeRemoved))
   }
 
   const editTodo = async (allTodos,todoToBeEdited) => {
-    await props.dispatch(removeATodo(allTodos, todoToBeEdited))
-    await props.dispatch(editATodo(todoToBeEdited))
+    await dispatch(removeATodo(allTodos, todoToBeEdited))
+    dispatch(editATodo(todoToBeEdited))
     setState(previousState=>({
       ...previousState,
       isEditing:true,
@@ -66,7 +72,7 @@ function App(props) {
   }
 
   const toggleTodo = (todoToBeToggled) => {
-    props.dispatch(toggleTodoState(todoToBeToggled))
+    dispatch(toggleTodoState(todoToBeToggled))
   }
 
   const addNewTodo = (e) => {
@@ -76,13 +82,12 @@ function App(props) {
       return
     }
     const value = state.isEditing ? Object.assign({},state.todoToBeEdited,{value:state.value}) : state.value
-    props.dispatch(addTodo(value))
+    dispatch(addTodo(value))
     setState(previousState=>({
       ...previousState,
       isEditing:false,
       value:""
-    }))
-    
+    }))  
   }
 
   const handleChange = e => {
@@ -101,31 +106,58 @@ function App(props) {
     }))
   }
 
-  if(state === null){
+  const handleBackgroundChange = (e) => {
+    const _e = e;
+    if(_e.target.value === "#fff"){
+      document.documentElement.style.setProperty(`--formbg`,getRandomColor())
+      document.documentElement.style.setProperty(`--text`,getRandomColor())
+      document.documentElement.style.setProperty(`--${_e.target.name}`,`${_e.target.value}`)
+      
+    } else {
+      document.documentElement.style.setProperty(`--formbg`,`${getRandomColor()}66`)
+      document.documentElement.style.setProperty(`--text`,getRandomColor())
+      document.documentElement.style.setProperty(`--${_e.target.name}`,`linear-gradient(120deg,${getRandomColor()},${getRandomColor()},${getRandomColor()})`)
+
+    }
+  }
+
+  if(state === null || showingTodos === null){
     return <>Loading...</>
   }
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <form onSubmit={addNewTodo}>
-          <input type="text" value={state.value} onChange={handleChange} required/>
-          <button type="submit">Add</button>
-        </form>
-      </header>
+      <div className="background-toggler">
+        <select name="background" onChange={handleBackgroundChange}>
+          <option value="linear-gradient(120deg, #a81010,#653445,#1bffce)">Gradient</option>
+          <option value="#fff">White</option>
+        </select>
+      </div>
+      <form onSubmit={addNewTodo}>
+        <input type="text" value={state.value} onChange={handleChange} placeholder="Write your todos here" required/>
+        <button type="submit">Add</button>
+      </form>
       <ListAllTodos todos={showingTodos} edit={editTodo} remove={removeTodo} toggle={toggleTodo}/>
       {
-        state.allTodos.length ? <ol>
+        props.allTodos.length ? <ol>
           <li>
-            <button name="completed" onClick={handleFilter} className="list-toggler">Completed</button>
-            <button name="pending" onClick={handleFilter} className="list-toggler">Pending</button>
-            <button name="all" onClick={handleFilter} className="list-toggler">All</button>
+            <button name="completed" onClick={handleFilter} className={`list-toggler ${state.showingTodos === "completed" ? 'active' : ''}`}>Completed</button>
+            <button name="pending" onClick={handleFilter} className={`list-toggler ${state.showingTodos === "pending" ? 'active' : ''}`}>Pending</button>
+            <button name="all" onClick={handleFilter} className={`list-toggler ${state.showingTodos === "all" ? 'active' : ''}`}>All</button>
           </li> 
         </ol>: ""
       }
     </div>
   );
+}
+
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
 }
 
 function mapStateToProps(state){

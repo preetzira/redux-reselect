@@ -22,8 +22,8 @@ export function addTodo(todoValue) {
 
 export function removeATodo(allTodos, todoToBeRemoved) {
     return dispatch => {
-        const todosAfterRemoving = allTodos.filter(todoItem => todoItem.createdAt !== todoToBeRemoved.createdAt)
-        console.log(todosAfterRemoving)
+        const _allTodos = allTodos.slice()
+        const todosAfterRemoving = _allTodos.filter(todoItem => todoItem.createdAt !== todoToBeRemoved.createdAt)
         dispatch({
             type: ACTION_TYPE.REMOVE_A_TODO,
             payload: todosAfterRemoving
